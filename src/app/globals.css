@@ -1,0 +1,247 @@
+@import "tailwindcss";
+
+/* ===============================
+   THEME VARIABLES - MATRIMONIAL TRUST
+   Warm, welcoming colors for trust and compassion
+================================ */
+
+/* The values below are the DEFAULT theme. When different colours are chosen at
+   Settings → Trust Details → Colours, TrustLoader injects a <style id="trust-theme">
+   that overrides them (see src/utils/trust/theme.js → buildThemeCss). */
+:root {
+  /* Backgrounds - Soft and warm */
+  --background: #fff8f5;       /* Soft peachy white */
+  --surface: #ffffff;          /* Pure white for cards */
+  --surface-secondary: #fef2ed; /* Warm off-white */
+
+  /* Text Colors */
+  --foreground: #3e1f1a;       /* Deep warm brown */
+  --foreground-secondary: #6b4f47; /* Medium warm brown */
+  --muted-foreground: #8b7871; /* Soft brown-gray */
+
+  /* Primary - Love & Trust (Rose-Pink) */
+  --primary: #db2777;          /* Rose-600 - Primary brand color */
+  --primary-light: #f472b6;    /* Rose-400 - Lighter variant */
+  --primary-dark: #be185d;     /* Rose-700 - Darker variant */
+  --primary-darker: #9f1239;   /* Rose-800 */
+  --primary-rgb: 219, 39, 119; /* --primary as r, g, b — for rgba(var(--primary-rgb), .1) */
+  /* Light tints of the primary colour (backgrounds, borders, hovers) */
+  --primary-50: #fff1f2;
+  --primary-100: #ffe4e6;
+  --primary-200: #fecdd3;
+  --primary-300: #fda4af;
+  --pink-50: #fdf2f8;
+  --pink-100: #fce7f3;
+  --pink-200: #fbcfe8;
+  --pink-300: #f9a8d4;
+  --primary-foreground: #ffffff;
+
+  /* Secondary - Warmth & Joy (Orange) */
+  --secondary: #ea580c;        /* Orange-600 */
+  --secondary-light: #fb923c;  /* Orange-400 */
+  --secondary-dark: #c2410c;   /* Orange-700 */
+  --secondary-rgb: 234, 88, 12;
+  --secondary-foreground: #ffffff;
+
+  /* Accent - Hope & Growth (Emerald) */
+  --accent: #059669;           /* Emerald-600 */
+  --accent-light: #34d399;     /* Emerald-400 */
+  --accent-foreground: #ffffff;
+
+  /* Tertiary - Celebration (Amber) */
+  --tertiary: #f59e0b;         /* Amber-500 */
+  --tertiary-light: #fbbf24;   /* Amber-400 */
+
+  /* Borders & Inputs */
+  --border: #fde2d8;           /* Soft peach */
+  --border-hover: #fcd1c2;     /* Slightly darker peach */
+  --input: #fecaca;            /* Rose-200 */
+  --ring: #f43f5e;             /* Rose-500 - Focus ring */
+
+  /* Status Colors */
+  --success: #16a34a;          /* Green-600 - Success/Approved */
+  --success-light: #22c55e;    /* Green-500 */
+  --warning: #f59e0b;          /* Amber-500 - Pending/Warning */
+  --warning-light: #fbbf24;    /* Amber-400 */
+  --error: #dc2626;            /* Red-600 - Error/Rejected */
+  --error-light: #ef4444;      /* Red-500 */
+  --info: #2563eb;             /* Blue-600 - Information */
+  --info-light: #3b82f6;       /* Blue-500 */
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  --gradient-warm: linear-gradient(135deg, #fb923c 0%, #fbbf24 100%);
+  --gradient-success: linear-gradient(135deg, #16a34a 0%, #059669 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(var(--primary-rgb), 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(var(--primary-rgb), 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(var(--primary-rgb), 0.15);
+  --shadow-xl: 0 20px 25px -5px rgba(var(--primary-rgb), 0.2);
+}
+
+/* ===============================
+   DARK MODE - Elegant & Comfortable
+================================ */
+
+
+/* ===============================
+   TAILWIND THEME MAPPING
+================================ */
+
+@theme inline {
+  /* Colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-secondary: var(--secondary);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-info: var(--info);
+
+  /* Fonts */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', monospace;
+}
+
+/* ===============================
+   GLOBAL STYLES
+================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Warm textured background overlay */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(var(--primary-rgb), 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(var(--secondary-rgb), 0.04) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.03) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Subtle noise texture for depth */
+body::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.02'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.5;
+}
+
+/* Ensure content appears above background */
+#root,
+#__next {
+  position: relative;
+  z-index: 1;
+}
+
+/* ===============================
+   SCROLLBAR STYLING
+================================ */
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-dark);
+}
+
+/* ===============================
+   SELECTION STYLING
+================================ */
+
+::selection {
+  background-color: var(--primary-light);
+  color: white;
+}
+
+::-moz-selection {
+  background-color: var(--primary-light);
+  color: white;
+}
+
+/* ===============================
+   FOCUS VISIBLE STYLES
+================================ */
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* ===============================
+   UTILITY CLASSES
+================================ */
+
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+
+.gradient-warm {
+  background: var(--gradient-warm);
+}
+
+.gradient-success {
+  background: var(--gradient-success);
+}
+
+.shadow-rose {
+  box-shadow: var(--shadow-lg);
+}
+
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ===============================
+   RESPONSIVE BREAKPOINTS
+================================ */
+
+/* Mobile-first approach */
+/* sm: 640px */
+/* md: 768px */
+/* lg: 1024px */
+/* xl: 1280px */
+/* 2xl: 1536px */

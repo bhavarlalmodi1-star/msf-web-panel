@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// SSGMS Web Panel — Cloud Storage security rules
+//
+// Deploy:  firebase deploy --only storage
+//
+// Note: files written by the server (Admin SDK) — WhatsApp media mirrors and
+// generated certificates — bypass these rules. The read rules below still
+// matter, because Gupshup and the member app fetch those URLs anonymously.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function underSize(mb) {
+      return request.resource.size < mb * 1024 * 1024;
+    }
+
+    // ── Member photos & documents ─────────────────────────────────────────
+    match /members/{folder}/{file} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && underSize(10);
+    }
+
+    // ── Payment screenshots / receipts ────────────────────────────────────
+    match /memberpayments/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && underSize(10);
+    }
+
+    // ── Organisation settings ─────────────────────────────────────────────
+    // Payment QR must be readable by the member app without auth
+    match /settings/paymentQr/{file} {
+      allow read: if true;
+      allow write: if isSignedIn() && isImage() && underSize(3);
+    }
+    match /settings/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSignedIn() && underSize(5);
+    }
+
+    // ── Membership certificates ───────────────────────────────────────────
+    // Written by the server. Public read because Gupshup fetches the PDF
+    // anonymously when attaching it to a WhatsApp template.
+    match /certificates/{file} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ── WhatsApp inbound media (mirrored server-side) ─────────────────────
+    match /whatsapp/{phone}/{file} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+
+    // ── Deny everything else ──────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
