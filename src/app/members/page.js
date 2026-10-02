@@ -36,6 +36,7 @@ import CertificateCom from './components/MemberPdf/CertificateCom'
 import MemberListPdf, { getOldRegNo, getClosedDate } from './components/MemberPdf/MemberListPdf'
 import RasidDrawer from './components/RasidCom/RasidDrawer'
 import PaymentDetailsDrawer from './components/PaymentDetailsDrawer'
+import { useTrust } from '@/utils/trust/useTrust'
 
 // ── Helper: auto-download PDF when blob is ready ──
 const PdfAutoDownloader = ({ pdfMeta, onDone }) => {
@@ -121,6 +122,7 @@ const Page = () => {
   const [pdfMeta, setPdfMeta] = useState(null) // { data, filters, programList }
   const currentUser = auth.currentUser
 
+  const trust = useTrust()   // trust.whatsappOn — WhatsApp switch in Settings → Trust Details
   const [searchMode,    setSearchMode]    = useState('paginated')
   const [searchResults, setSearchResults] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
@@ -963,7 +965,7 @@ const handleDeleteMember = (member) => {
             icon: <FileTextOutlined />,
             onClick: () => handleCertificateMember(record)
           },
-          {
+          trust.whatsappOn && {
             key: 'wa_cert',
             label: 'Send Certificate on WhatsApp',
             icon: <WhatsAppOutlined style={{ color: '#25D366' }} />,
@@ -1349,6 +1351,7 @@ ${filterHtml}
             )
             }
            
+            {trust.whatsappOn && (
             <Tooltip title={selectedRowKeys.length ? `Send the join certificate to ${selectedRowKeys.length} selected member(s)` : 'Select members first'}>
               <Button
                 icon={<WhatsAppOutlined />}
@@ -1359,6 +1362,7 @@ ${filterHtml}
                 Send WhatsApp{selectedRowKeys.length ? ` (${selectedRowKeys.length})` : ''}
               </Button>
             </Tooltip>
+            )}
 
             <Tooltip title={selectedRowKeys.length ? `Transfer ${selectedRowKeys.length} selected member(s) to another agent` : 'Select members first'}>
               <Button

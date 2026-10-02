@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "create-admin": "node scripts/create-first-user.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.3.2",

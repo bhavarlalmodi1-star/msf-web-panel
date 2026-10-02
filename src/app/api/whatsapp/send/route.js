@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import admin from "../../db/firebaseAdmin";
 import { checkRole, verifyToken } from "../../../../../middleware/authMiddleware";
-import { getTrustServer } from "../../db/trustServer";
+import { getTrustServer, isWhatsAppOn } from "../../db/trustServer";
 
 const db = admin.firestore();
 
@@ -35,6 +35,9 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: authResult.error }, { status: authResult.status });
     if (!checkRole(['superadmin', 'admin'], authResult.user.role))
       return NextResponse.json({ success: false, message: 'Insufficient permissions' }, { status: 403 });
+
+    if (!(await isWhatsAppOn()))
+      return NextResponse.json({ success: false, whatsappOff: true, message: 'WhatsApp messages are turned off (Settings → Trust Details)' }, { status: 403 });
 
     const { memberIds, template, testMode } = await req.json();
     const messageTemplate = template || DEFAULT_TEMPLATE;

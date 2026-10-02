@@ -59,6 +59,11 @@ export const DEFAULT_TRUST = {
   footerTagline: 'Connecting Hearts, Building Futures',
   appLink: 'https://play.google.com/store/apps/details?id=com.ssgmssst_trust.app',
 
+  // ── Features ──────────────────────────────────────────────────────────────
+  // WhatsApp messaging: 'on' | 'off'. Off hides every WhatsApp menu, button and
+  // tick-box in the panel and the server refuses to send. Off by default.
+  whatsappEnabled: 'off',
+
   // ── Colours ───────────────────────────────────────────────────────────────
   pdfColorPrimary: DEFAULT_PDF_PRIMARY,     // PDF headings, bars, table headers
   pdfColorAccent: DEFAULT_PDF_ACCENT,       // PDF blessing line, badges, labels
@@ -124,6 +129,8 @@ export const normalizeTrust = (raw, options = {}) => {
   t.themePrimary = cleanHex(t.themePrimary, DEFAULT_THEME_PRIMARY);
   t.themeSecondary = cleanHex(t.themeSecondary, DEFAULT_THEME_SECONDARY);
   t.theme = buildPanelTheme(t.themePrimary, t.themeSecondary);   // every panel colour, derived
+
+  t.whatsappOn = t.whatsappEnabled === 'on';
 
   t.blessings = [t.blessing1, t.blessing2, t.blessing3].map(s => s.trim()).filter(Boolean);
   t.addressWithOffice = t.officePhone ? `${t.address} (O) ${t.officePhone}` : t.address;

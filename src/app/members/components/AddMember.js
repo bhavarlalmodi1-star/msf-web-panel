@@ -17,6 +17,7 @@ import FeesForm         from './components/FeesForm'
 import PhotoUploads     from './components/PhotoUploads'
 import DocumentUploads  from './components/DocumentUploads'
 import { checkAadhaarDuplicate, handleSubmit, generateRegistrationNumber, isRegistrationNumberAvailable } from './components/firebaseUtils'
+import { useTrust } from '@/utils/trust/useTrust'
 
 dayjs.extend(isBetween)
 
@@ -30,6 +31,7 @@ const generatePassword = (name, dob) => {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 const AddMember = ({ open, setOpen, programs, agents, currentUser, onSuccess }) => {
+  const trust = useTrust()   // trust.whatsappOn — WhatsApp switch in Settings → Trust Details
   const [form]      = Form.useForm()
   const { message } = App.useApp()
   const [loading,  setLoading]  = useState(false)
@@ -706,6 +708,7 @@ const AddMember = ({ open, setOpen, programs, agents, currentUser, onSuccess }) 
                 <p className="text-xs text-gray-500 mb-3">Choose how to notify the member after registration</p>
               </div>
               <Space direction="vertical" size="middle" className="w-full">
+                {trust.whatsappOn && (<>
                 <Checkbox
                   checked={sendWhatsApp}
                   onChange={(e) => setSendWhatsApp(e.target.checked)}
@@ -738,6 +741,8 @@ const AddMember = ({ open, setOpen, programs, agents, currentUser, onSuccess }) 
                     assigned there is no number to send the copy to.
                   </div>
                 )}
+
+                </>)}
 
                 <Checkbox
                   checked={sendNotification}

@@ -34,7 +34,7 @@ import { generatePassword } from '../../members/route';
 import {
   CHATS, normalisePhone, isSessionOpen, recordOutbound,
 } from '../_lib/store';
-import { getTrustServer } from '../../db/trustServer';
+import { getTrustServer, isWhatsAppOn } from '../../db/trustServer';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -87,6 +87,8 @@ export async function POST(req) {
     // Sends passwords out — superadmin only.
     if (!checkRole(['superadmin'], authResult.user.role))
       return NextResponse.json({ success: false, message: 'Only superadmin can send login credentials' }, { status: 403 });
+    if (!(await isWhatsAppOn()))
+      return NextResponse.json({ success: false, whatsappOff: true, message: 'WhatsApp messages are turned off (Settings → Trust Details)' }, { status: 403 });
 
     const {
       memberIds = [],

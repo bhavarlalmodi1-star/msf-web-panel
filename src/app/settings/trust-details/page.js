@@ -10,12 +10,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card, Button, Form, Input, message, Row, Col, Typography, Space, Upload,
-  Spin, Alert, Popconfirm, Tag, ColorPicker, Tooltip,
+  Spin, Alert, Popconfirm, Tag, ColorPicker, Tooltip, Switch,
 } from 'antd';
 import {
   SaveOutlined, ReloadOutlined, UploadOutlined, LoadingOutlined, UndoOutlined,
   BankOutlined, EnvironmentOutlined, PictureOutlined, FileTextOutlined,
-  SafetyCertificateOutlined, LaptopOutlined, EyeOutlined, BgColorsOutlined,
+  SafetyCertificateOutlined, LaptopOutlined, EyeOutlined, BgColorsOutlined, WhatsAppOutlined,
 } from '@ant-design/icons';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -40,7 +40,8 @@ const COLOR_DEFAULTS = {
   pdfColorPrimary: DEFAULT_PDF_PRIMARY, pdfColorAccent: DEFAULT_PDF_ACCENT,
   themePrimary: DEFAULT_THEME_PRIMARY, themeSecondary: DEFAULT_THEME_SECONDARY,
 };
-const TEXT_KEYS = Object.keys(DEFAULT_TRUST).filter((k) => !IMAGE_KEYS.includes(k) && !COLOR_KEYS.includes(k));
+const FLAG_KEYS = ['whatsappEnabled'];   // on/off switches
+const TEXT_KEYS = Object.keys(DEFAULT_TRUST).filter((k) => !IMAGE_KEYS.includes(k) && !COLOR_KEYS.includes(k) && !FLAG_KEYS.includes(k));
 
 const IMAGE_SLOTS = [
   {
@@ -173,6 +174,7 @@ export default function TrustDetailsPage() {
   const [lastSaved, setLastSaved] = useState(null);
   const [dirtyImages, setDirtyImages] = useState(false);
   const [colors, setColors] = useState(COLOR_DEFAULTS);
+  const [whatsappOn, setWhatsappOn] = useState(false);
   const [savedColors, setSavedColors] = useState(COLOR_DEFAULTS);
 
   // ── Load ────────────────────────────────────────────────────────────────
@@ -188,6 +190,7 @@ export default function TrustDetailsPage() {
       const loadedColors = Object.fromEntries(COLOR_KEYS.map((k) => [k, cleanHex(merged[k], COLOR_DEFAULTS[k])]));
       setColors(loadedColors);
       setSavedColors(loadedColors);
+      setWhatsappOn(merged.whatsappEnabled === 'on');
       setSavedOnce(snap.exists());
       setDirtyImages(false);
 
@@ -242,6 +245,7 @@ export default function TrustDetailsPage() {
         ...Object.fromEntries(TEXT_KEYS.map((k) => [k, String(values[k] ?? '').trim()])),
         ...images,
         ...colors,
+        whatsappEnabled: whatsappOn ? 'on' : 'off',
       });
 
       setSaving(true);
@@ -527,6 +531,26 @@ export default function TrustDetailsPage() {
                 style={{ marginBottom: 0 }}>
                 <Input placeholder="https://play.google.com/store/apps/details?id=…" maxLength={200} />
               </Form.Item>
+            </Card>
+
+            <Card size="small" style={cardStyle}
+              title={<SectionTitle icon={<WhatsAppOutlined />}>WhatsApp Messages</SectionTitle>}
+              extra={whatsappOn ? <Tag color="green">On</Tag> : <Tag>Off</Tag>}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <Switch
+                  checked={whatsappOn} onChange={setWhatsappOn}
+                  disabled={!canEdit || saving}
+                  checkedChildren="On" unCheckedChildren="Off"
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>Send WhatsApp messages from this panel</div>
+                  <div style={{ fontSize: 11.5, color: '#6b7280' }}>
+                    Off: the WhatsApp menu, the “Send WhatsApp” buttons and the WhatsApp tick-boxes are hidden
+                    for everyone, and no WhatsApp message is sent. Certificates are still created.
+                    Press Save Details to apply.
+                  </div>
+                </div>
+              </div>
             </Card>
           </Col>
 

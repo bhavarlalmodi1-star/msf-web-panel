@@ -12,6 +12,7 @@
 import { NextResponse } from 'next/server';
 import admin from '../../db/firebaseAdmin';
 import { checkRole, verifyToken } from '../../../../../middleware/authMiddleware';
+import { isWhatsAppOn } from '../../db/trustServer';
 import { db, CHATS, normalisePhone, recordOutbound, isSessionOpen } from '../_lib/store';
 
 export const runtime = 'nodejs';
@@ -27,6 +28,8 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: authResult.error }, { status: authResult.status });
     if (!checkRole(['superadmin', 'admin'], authResult.user.role))
       return NextResponse.json({ success: false, message: 'Insufficient permissions' }, { status: 403 });
+    if (!(await isWhatsAppOn()))
+      return NextResponse.json({ success: false, whatsappOff: true, message: 'WhatsApp messages are turned off (Settings → Trust Details)' }, { status: 403 });
 
     const { phone: rawPhone, text } = await req.json();
 

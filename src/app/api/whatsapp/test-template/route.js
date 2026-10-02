@@ -4,6 +4,7 @@
 
 import { NextResponse } from 'next/server';
 import { checkRole, verifyToken } from '../../../../../middleware/authMiddleware';
+import { isWhatsAppOn } from '../../db/trustServer';
 
 const GUPSHUP_API_KEY   = process.env.WHATSAPP_API_KEY;
 const SOURCE_NO         = process.env.SOURCE_NO_WHATSAPP;     // e.g. 919227105345
@@ -19,6 +20,8 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: authResult.error }, { status: authResult.status });
     if (!checkRole(['superadmin', 'admin'], authResult.user.role))
       return NextResponse.json({ success: false, message: 'Insufficient permissions' }, { status: 403 });
+    if (!(await isWhatsAppOn()))
+      return NextResponse.json({ success: false, whatsappOff: true, message: 'WhatsApp messages are turned off (Settings → Trust Details)' }, { status: 403 });
 
     const { phone, params = [] } = await req.json();
 

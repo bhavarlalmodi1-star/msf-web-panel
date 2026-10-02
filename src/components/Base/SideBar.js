@@ -56,7 +56,7 @@ const anyChildAccessible = (user, item) => {
 
 // ─── Menu definition ───────────────────────────────────────────────────────────
 
-const buildMenuItems = (user, pendingCount, collapsed) => {
+const buildMenuItems = (user, pendingCount, collapsed, whatsappOn = false) => {
   const label = (text) => collapsed ? null : text;
 
   const ALL_ITEMS = [
@@ -188,6 +188,13 @@ const buildMenuItems = (user, pendingCount, collapsed) => {
     },
   ];
 
+  // WhatsApp switched off (Settings → Trust Details) → no WhatsApp pages for anyone
+  if (!whatsappOn) {
+    ALL_ITEMS.forEach((item) => {
+      if (item.children) item.children = item.children.filter((c) => !String(c.key).startsWith('/payments/whatsapp'));
+    });
+  }
+
   if (isSuperAdmin(user)) return ALL_ITEMS;
 
   // Filter recursively
@@ -239,7 +246,7 @@ console.log("user ", user)
         }
       }
     };
-    check(buildMenuItems(user, pendingCount, collapsed));
+    check(buildMenuItems(user, pendingCount, collapsed, trust.whatsappOn));
     return keys;
   }, [pathname, user]);
 
@@ -264,8 +271,8 @@ console.log("user ", user)
   }, [user]);
 
   const menuItems = useMemo(
-    () => buildMenuItems(user, pendingCount, collapsed),
-    [user, pendingCount, collapsed]
+    () => buildMenuItems(user, pendingCount, collapsed, trust.whatsappOn),
+    [user, pendingCount, collapsed, trust.whatsappOn]
   );
 
   const handleMenuClick = ({ key }) => {

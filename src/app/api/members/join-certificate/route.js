@@ -22,7 +22,7 @@ import { checkRole, verifyToken } from '../../../../../middleware/authMiddleware
 import { generatePassword } from '../route';
 import { recordOutbound } from '../../whatsapp/_lib/store';
 import CertificateCom from '@/app/members/components/MemberPdf/CertificateCom';
-import { getTrustServer } from '../../db/trustServer';
+import { getTrustServer, isWhatsAppOn } from '../../db/trustServer';
 
 export const runtime = 'nodejs';
 
@@ -218,7 +218,14 @@ export async function POST(req) {
     }
 
     // ── Send the WhatsApp template ──────────────────────────────────────────
-    if (!skipWhatsApp) {
+    // WhatsApp can be switched off for the whole panel (Settings → Trust Details).
+    // The certificate above is still generated and saved either way.
+    const whatsappOn = await isWhatsAppOn();
+    if (!skipWhatsApp && !whatsappOn) {
+      result.whatsapp.error = 'WhatsApp messages are turned off (Settings → Trust Details)';
+      result.whatsapp.skipped = true;
+    }
+    if (!skipWhatsApp && whatsappOn) {
       const programName = m.programName || memberProgram?.name || '';
       const ageGroup    = m.ageGroupName || m.memberGroupName || m.ageGroup || '';
 

@@ -42,6 +42,9 @@ export const readTrustDocServer = async ({ fresh = false } = {}) => {
 /** Raw stored fields (plain strings). Never throws — returns {} on failure. */
 export const getTrustRawServer = async (options) => (await readTrustDocServer(options)).raw;
 
+/** Is WhatsApp messaging switched on? (Settings → Trust Details). Off by default. */
+export const isWhatsAppOn = async () => normalizeTrust(await getTrustRawServer(), { origin: '' }).whatsappOn;
+
 /** Download one uploaded trust image from Storage (cached). Returns null if missing. */
 export const getTrustImageServer = async (path) => {
   if (!isTrustStoragePath(path)) return null;

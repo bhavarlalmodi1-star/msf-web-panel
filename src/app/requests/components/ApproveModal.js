@@ -11,6 +11,7 @@ import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween'
 import { createClosingPayment, createSearchIndex, generateRegistrationNumber, getNextMemberSrNo, memberAccoiuntCreate, recordJoinFeeTransaction, sendJoinCertificate } from '@/app/members/components/components/firebaseUtils'
 import { notifyAgent } from '@/app/utils/notifyAgent'
+import { useTrust } from '@/utils/trust/useTrust'
 
 dayjs.extend(isBetween)
 
@@ -34,6 +35,7 @@ const ApproveModal = ({ open, setOpen, selectedMember, setSelectedMember, fetchA
   // ── Notification options (both default ON) ─────────────────────────────────
   // WhatsApp sends are opt-in — messages cost money and go to real people, so
   // they should be a deliberate choice rather than something that fires by default
+  const trust = useTrust()   // trust.whatsappOn — WhatsApp switch in Settings → Trust Details
   const [sendWhatsApp, setSendWhatsApp]           = useState(false)
   const [sendAgentWhatsApp, setSendAgentWhatsApp] = useState(false)
   const [sendNotification, setSendNotification]   = useState(true)
@@ -590,6 +592,7 @@ const ApproveModal = ({ open, setOpen, selectedMember, setSelectedMember, fetchA
                 </div>
 
                 <div className="flex flex-col gap-3">
+                  {trust.whatsappOn && (<>
                   <Checkbox
                     checked={sendWhatsApp}
                     onChange={(e) => setSendWhatsApp(e.target.checked)}
@@ -632,6 +635,8 @@ const ApproveModal = ({ open, setOpen, selectedMember, setSelectedMember, fetchA
                       ⚠️ This member has no agent assigned — there is no number to send the copy to.
                     </div>
                   )}
+
+                  </>)}
 
                   <Checkbox
                     checked={sendNotification}
