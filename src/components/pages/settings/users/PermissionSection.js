@@ -86,6 +86,7 @@ const PermissionSection = ({ permissions, onChange, userRole }) => {
       icon: <SettingOutlined />,
       children: [
         { title: 'Trust Details', key: '/settings/trust-details' },
+        { title: 'Certificate Builder', key: '/settings/certificate-builder' },
         { title: 'About', key: '/settings/about' },
         { title: 'Contact', key: '/settings/contact' },
         { title: 'Users', key: '/settings/users' }

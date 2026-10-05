@@ -23,7 +23,7 @@ import { db, storage, auth } from '../../../../lib/firbase-client';
 import { useAuth } from '@/components/Base/AuthProvider';
 import {
   TRUST_DOC_PATH, TRUST_STORAGE_FOLDER, DEFAULT_TRUST, DEFAULT_LOGO_SRC,
-  DEFAULT_RIGHT_IMAGE_SRC, pickTrustFields, setTrust,
+  DEFAULT_RIGHT_IMAGE_SRC, pickTrustFields, setTrust, getTrustRaw,
 } from '@/utils/trust/trustStore';
 import {
   DEFAULT_PDF_PRIMARY, DEFAULT_PDF_ACCENT, DEFAULT_THEME_PRIMARY, DEFAULT_THEME_SECONDARY,
@@ -41,7 +41,10 @@ const COLOR_DEFAULTS = {
   themePrimary: DEFAULT_THEME_PRIMARY, themeSecondary: DEFAULT_THEME_SECONDARY,
 };
 const FLAG_KEYS = ['whatsappEnabled'];   // on/off switches
-const TEXT_KEYS = Object.keys(DEFAULT_TRUST).filter((k) => !IMAGE_KEYS.includes(k) && !COLOR_KEYS.includes(k) && !FLAG_KEYS.includes(k));
+// Edited on their own page (Settings → Certificate Builder) — this form must
+// neither show nor overwrite them.
+const OTHER_PAGE_KEYS = ['certificateConfig'];
+const TEXT_KEYS = Object.keys(DEFAULT_TRUST).filter((k) => !IMAGE_KEYS.includes(k) && !COLOR_KEYS.includes(k) && !FLAG_KEYS.includes(k) && !OTHER_PAGE_KEYS.includes(k));
 
 const IMAGE_SLOTS = [
   {
@@ -255,8 +258,9 @@ export default function TrustDetailsPage() {
         updatedBy: auth.currentUser?.uid || null,
       }, { merge: true });
 
-      // Apply at once in this tab (other tabs / users get it through the live listener)
-      setTrust(payload);
+      // Apply at once in this tab (other tabs / users get it through the live listener).
+      // Fields this form does not edit (certificate layout) keep their current value.
+      setTrust({ ...getTrustRaw(), ...payload });
       // Drop the server's short cache so certificates and messages use it immediately
       fetch('/api/trust-info?refresh=1').catch(() => {});
 

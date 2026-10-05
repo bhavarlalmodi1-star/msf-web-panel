@@ -71,7 +71,8 @@ const toDataUrl = (img) => `data:${img.contentType};base64,${img.buffer.toString
 
 /**
  * Trust details for server-side use.
- *   withImages: true → logoSrc / rightImageSrc / frameSrc become data: URLs so
+ *   withImages: true → logoSrc / rightImageSrc / frameSrc (and the certificate's
+ *   signature pictures) become data: URLs so
  *   @react-pdf/renderer can embed them without any network call. An image that
  *   has not been uploaded (or fails to download) is reported as "not custom",
  *   and the PDF falls back to its built-in picture.
@@ -81,10 +82,12 @@ export const getTrustServer = async ({ withImages = false, fresh = false } = {})
   const trust = normalizeTrust(raw, { origin: '' });
   if (!withImages) return trust;
 
-  const [logo, right, frame] = await Promise.all([
+  const [logo, right, frame, leftSign, rightSign] = await Promise.all([
     getTrustImageServer(trust.logoPath),
     getTrustImageServer(trust.rightImagePath),
     getTrustImageServer(trust.framePath),
+    getTrustImageServer(trust.certificate.leftSignPath),
+    getTrustImageServer(trust.certificate.rightSignPath),
   ]);
 
   trust.hasCustomLogo = !!logo;
@@ -93,5 +96,8 @@ export const getTrustServer = async ({ withImages = false, fresh = false } = {})
   trust.rightImageSrc = right ? toDataUrl(right) : '';
   trust.hasCustomFrame = !!frame;
   trust.frameSrc = frame ? toDataUrl(frame) : '';
+  // Certificate signatures (Settings → Certificate Builder)
+  trust.certificate.leftSignSrc = leftSign ? toDataUrl(leftSign) : '';
+  trust.certificate.rightSignSrc = rightSign ? toDataUrl(rightSign) : '';
   return trust;
 };

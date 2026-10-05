@@ -7,6 +7,9 @@ import { Document, Font, Image, Page, StyleSheet, Text, View } from '@react-pdf/
 import React from 'react'
 import { getTrust, fitFontSize } from '@/utils/trust/trustStore';
 import { DEFAULT_PDF_PRIMARY, DEFAULT_PDF_ACCENT } from '@/utils/trust/theme';
+import {
+  normalizeCertificate, buildCertificateValues, fillCertificateText, certificateFieldValue,
+} from '@/utils/trust/certificateConfig';
 
 Font.register({
   family: 'NotoSansDevanagari',
@@ -25,7 +28,14 @@ Font.register({
 let RED = DEFAULT_PDF_ACCENT;    // accent  (Settings → Trust Details → Colours)
 let BLUE = DEFAULT_PDF_PRIMARY;  // primary (Settings → Trust Details → Colours)
 
-const buildStyles = () => StyleSheet.create({
+// Layout choices come from Settings → Certificate Builder (trust.certificate).
+const DEFAULT_LAYOUT = normalizeCertificate();
+const STATE_GAP = 26;   // space between the title badge and the state name on each side
+// Lines wrap only between words — never in the middle of a word or a number
+const wholeWords = (word) => [word];
+const pick = (choice) => (choice === 'primary' ? BLUE : choice === 'accent' ? RED : '#000');
+
+const buildStyles = (c = DEFAULT_LAYOUT) => StyleSheet.create({
   page: {
     backgroundColor: '#ffffff',
     fontFamily: 'NotoSansDevanagari',
@@ -39,7 +49,9 @@ const buildStyles = () => StyleSheet.create({
     // borderColor: "#d4af37",
     // borderStyle: "solid",
     position: 'relative',
-    padding: 35,
+    // How far the text stays from the page edge — set to suit the frame picture
+    paddingHorizontal: c.padX,
+    paddingVertical: c.padY,
     display: 'flex',
     flexDirection: 'column',
   },
@@ -57,12 +69,19 @@ const buildStyles = () => StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
   },
+  // Header: logo | name + address | picture. Both side boxes are the SAME fixed
+  // width, so the name is always in the exact middle of the page — no matter how
+  // long the text under either picture is.
   headerSection: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 2,
     paddingHorizontal: 10,
+  },
+  sideBox: {
+    width: 78,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logoImage: {
     width: 70,
@@ -79,7 +98,7 @@ const buildStyles = () => StyleSheet.create({
   centerContent: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
   },
   mainTitle: {
     fontSize: 16,
@@ -88,51 +107,57 @@ const buildStyles = () => StyleSheet.create({
     marginBottom: 3,
     letterSpacing: 0.6,
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
-  addressBox: {
-    display: 'flex',
-    flexDirection: 'row',
-    justifyContent: 'center',
+  // "label : value" printed as ONE centred line, so the label always sits right
+  // beside its text (short address or long).
+  infoLine: {
+    fontSize: 8,
+    color: '#000',
+    textAlign: 'center',
     marginBottom: 2,
   },
-  addresshLabel: {
+  infoLabel: {
     color: RED,
-    fontSize: 8,
-    fontWeight: 600
-  },
-  addressValue: {
-    color: '#000',
-    fontSize: 8,
-    textAlign: 'center',
-    width: '90%',
+    fontWeight: 600,
   },
   phoneNo: {
     fontWeight: 900,
     color: BLUE
   },
+  // Row under the header: SINCE · state | title badge | state · Reg. No.
+  // The two sides share the leftover width equally, which keeps the badge centred.
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginBottom: 6,
+  },
+  titleSide: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  // Sits under a picture: short text is centred below it, long text grows inwards
+  captionBox: {
+    minWidth: 84,
+    flexShrink: 1,
+    alignItems: 'center',
+  },
   imageText: {
     fontSize: 9,
     fontWeight: 'bold',
     color: BLUE,
-    marginTop: 2,
-  },
-  imageBox: {
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 2
-  },
-  headingBox: {
-    flexDirection: 'row',
-    width: '80%',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 3
+    textAlign: 'center',
   },
   stateText: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: BLUE
+    color: BLUE,
+    flexShrink: 0,
   },
   schemeBox: {
     backgroundColor: RED,
@@ -154,7 +179,7 @@ const buildStyles = () => StyleSheet.create({
     left: '54mm',
     width: '90mm',
     height: '70mm',
-    opacity: 0.08,
+    opacity: c.watermarkOpacity / 100,
     zIndex: 0,
   },
   
@@ -242,34 +267,26 @@ const buildStyles = () => StyleSheet.create({
   },
   
   detailLabel: {
-    fontSize: 10,
-    color: BLUE,
+    fontSize: c.detailFontSize,
+    color: pick(c.labelColor),
     fontWeight: 'normal',
-    width: '30%',
+    width: `${c.labelWidth}%`,
     textAlign: 'left',
   },
   
   detailColon: {
-    fontSize: 10,
-     color: RED,
+    fontSize: c.detailFontSize,
+    color: pick(c.valueColor),
     fontWeight: '500',
     marginHorizontal: 2,
   },
   
   detailValue: {
-    fontSize: 10,
-    color: RED,
+    fontSize: c.detailFontSize,
+    color: pick(c.valueColor),
     fontWeight: '500',
     flex: 1,
-    textTransform: 'uppercase',
-  },
-  
-  detailValueNormal: {
-    fontSize: 10,
-    color: RED,
-    fontWeight: '500',
-    flex: 1,
-    textTransform: 'uppercase',
+    textTransform: c.valuesUppercase ? 'uppercase' : 'none',
   },
   
   // Photo Section - Right Side (Only Photo)
@@ -455,7 +472,7 @@ const buildStyles = () => StyleSheet.create({
     left: 0,
     width: '100%',
     height: '100%',
-    objectFit: 'fill',
+    objectFit: c.frameFit === 'contain' ? 'contain' : 'fill',
     zIndex: -1,
       },
        rowContainer: {
@@ -471,229 +488,185 @@ const buildStyles = () => StyleSheet.create({
     marginLeft: 10,
     fontWeight: '500',
   },
+
+  noteText: {
+    fontSize: 9.5,
+    color: '#000',
+    lineHeight: 1.3,
+    marginTop: 2,
+  },
+
+  // Signature picture above a footer name (Certificate Builder)
+  signImage: {
+    height: 24,
+    width: 96,
+    objectFit: 'contain',
+    marginBottom: 1,
+  },
+
+  // Keeps the title centred when a header picture is switched off
+  logoGap: {
+    width: 70,
+    height: 62,
+  },
 });
 
-// Styles are built by a function so the two brand colours can change.
+// Styles are built by a function so the brand colours and the builder's layout
+// choices can change. Rebuilt only when one of them actually differs.
 let styles = buildStyles();
-let pdfColorKey = '';
+let styleKey = '';
 
-// PDF colours come from Settings → Trust Details → Colours.
-const applyPdfColors = (trust) => {
-  const key = `${trust.pdfColorPrimary}|${trust.pdfColorAccent}`;
-  if (key === pdfColorKey) return;
-  pdfColorKey = key;
+const applyStyles = (trust, c) => {
+  const key = [
+    trust.pdfColorPrimary, trust.pdfColorAccent, c.watermarkOpacity, c.detailFontSize,
+    c.labelWidth, c.labelColor, c.valueColor, c.valuesUppercase, c.padX, c.padY, c.frameFit,
+  ].join('|');
+  if (key === styleKey) return;
+  styleKey = key;
   BLUE = trust.pdfColorPrimary;
   RED = trust.pdfColorAccent;
-  styles = buildStyles();
+  styles = buildStyles(c);
 };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return '09-01-2026';
-    return dateString;
-  };
+// A picture the PDF renderer can actually load (full web address or embedded data)
+const loadable = (src) => typeof src === 'string' && /^(https?:|data:)/.test(src);
 
-  const CertificatePage=({data, memberProgram, trust: trustProp})=>{
+const CertificatePage = ({ data, memberProgram, trust: trustProp }) => {
   // Trust details: passed in by server routes, otherwise the panel's live store.
   const trust = trustProp || getTrust();
-  applyPdfColors(trust);
+  // Layout: Settings → Certificate Builder. Missing → the built-in certificate.
+  const c = trust.certificate || DEFAULT_LAYOUT;
+  applyStyles(trust, c);
+
   // Uploaded images win; otherwise the built-in ones bundled with the panel.
   const logoImg  = trust.hasCustomLogo && trust.logoSrc ? trust.logoSrc : LogoImg;
   const rightImg = trust.hasCustomRightImage && trust.rightImageSrc ? trust.rightImageSrc : RigthImg;
   const frameImg = trust.hasCustomFrame && trust.frameSrc ? trust.frameSrc : FrameImg;
-  return (   <Page size={{ width: '210mm', height: '148mm' }} style={styles.page}>
 
-           <Image
-            src={frameImg}
-            style={styles.frameImg}
-          />
-                {/* <Image
-            src="/Images/frameImg4.jpg"
-            style={styles.bgImage}
-          /> */}
-        <View style={styles.outerView}>
-          <Image
-            src={logoImg}
-            style={styles.watermark}
-          />
-     
-          {/* Header Section */}
-          <View style={styles.topText}>
-            {trust.blessings.map((line, i) => (<Text key={i} style={styles.smallText}>{line}</Text>))}
+  // Every value a row or a {placeholder} can print for this member
+  const values = buildCertificateValues(data, memberProgram, trust);
+  const fill = (text) => fillCertificateText(text, values).trim();
+
+  const rows = c.fields.filter((f) => f.show);
+  const leftRows = rows.filter((f) => f.col !== 'right');
+  const rightRows = rows.filter((f) => f.col === 'right');
+
+  const schemeLine = c.showScheme ? fill(c.schemeText) : '';
+  const contribution = c.showContribution ? fill(c.contributionText) : '';
+  const joinFeeLine = c.showJoinFee && !!data?.joinFees && values.joinFeePending !== '' ? fill(c.joinFeeText) : '';
+  const rule = c.showRules ? String(memberProgram?.certificateRule || '').trim() : '';
+  const note = fill(c.note);
+  const centerLines = c.showCenter ? [fill(c.centerLine1), fill(c.centerLine2)].filter(Boolean) : [];
+  const rightLine1 = fill(c.rightLine1);
+  const rightLine2 = fill(c.rightLine2);
+  const sinceText = c.showSince && trust.since ? `SINCE: ${trust.since}` : '';
+  const regText = c.showRegNo ? trust.regText : '';
+
+  const detailRow = (f) => (
+    <View key={f.id} style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{f.label}</Text>
+      <Text style={styles.detailColon}>:</Text>
+      <Text style={styles.detailValue}>{certificateFieldValue(f, values)}</Text>
+    </View>
+  );
+
+  return (
+    <Page size={{ width: '210mm', height: '148mm' }} style={styles.page}>
+      {c.showFrame && <Image src={frameImg} style={styles.frameImg} />}
+
+      <View style={styles.outerView}>
+        {c.showWatermark && <Image src={logoImg} style={styles.watermark} />}
+
+        {/* Header Section */}
+        {/* A single blessing line sits in the middle; two or three spread across */}
+        <View style={[styles.topText, trust.blessings.length === 1 ? { justifyContent: 'center' } : null]}>
+          {c.showBlessings && trust.blessings.map((line, i) => (<Text key={i} style={styles.smallText}>{line}</Text>))}
+        </View>
+
+        <View style={styles.headerSection}>
+          <View style={styles.sideBox}>
+            {c.showLogo ? <Image src={logoImg} style={styles.logoImage} /> : <View style={styles.logoGap} />}
           </View>
 
-          <View style={styles.headerSection}>
-            <View style={styles.imageBox}>
-              <Image
-                src={logoImg}
-                style={styles.logoImage}
-              />
-              <Text style={styles.imageText}>{trust.since ? `SINCE: ${trust.since}` : ''}</Text>
-            </View>
+          <View style={styles.centerContent}>
+            {/* The certificate is one fixed page — a long name shrinks instead of wrapping */}
+            <Text hyphenationCallback={wholeWords} style={[styles.mainTitle, { fontSize: fitFontSize(trust.name, 16, 50) }]}>{trust.name}</Text>
 
-            <View style={styles.centerContent}>
-              {/* The certificate is one fixed page — a long name shrinks instead of wrapping */}
-              <Text style={[styles.mainTitle, { fontSize: fitFontSize(trust.name, 16, 50) }]}>{trust.name}</Text>
+            {c.showAddress && (
+              <Text hyphenationCallback={wholeWords} style={styles.infoLine}>
+                <Text style={styles.infoLabel}>{c.addressLabel} </Text>
+                {trust.addressWithOffice}
+              </Text>
+            )}
 
-              <View style={styles.addressBox}>
-                <Text style={styles.addresshLabel}> हेड ऑफिस : </Text>
-                <Text style={styles.addressValue}>
-                  {trust.addressWithOffice}
-                </Text>
-              </View>
-
-              <View style={styles.addressBox}>
-                <Text style={styles.addresshLabel}> संपर्क सूत्र : </Text>
-                <Text style={[styles.addressValue, styles.phoneNo]}>
-                  {trust.contactNumbers}
-                </Text>
-              </View>
-
-              <View style={styles.headingBox}>
-                <Text style={styles.stateText}>{trust.stateLeft} </Text>
-                <View style={styles.schemeBox}>
-                  <Text style={styles.schemeText}>सदस्यता प्रमाण पत्र</Text>
-                </View>
-                <Text style={styles.stateText}>{trust.stateRight}</Text>
-              </View>
-            </View>
-
-            <View style={styles.imageBox}>
-              <Image
-                src={rightImg}
-                style={styles.logoImage1}
-              />
-              <Text style={styles.imageText}>{trust.regText}</Text>
-            </View>
+            {c.showContact && (
+              <Text hyphenationCallback={wholeWords} style={styles.infoLine}>
+                <Text style={styles.infoLabel}>{c.contactLabel} </Text>
+                <Text style={styles.phoneNo}>{trust.contactNumbers}</Text>
+              </Text>
+            )}
           </View>
 
-          {/* Member ID, Scheme Name and Date Row */}
-          <View style={styles.memberInfoRow}>
-       <Text style={styles.memberIdText}>
-  सदस्य क्रमांक :{" "}
-  <Text style={styles.memberIdValue}>
-    {data?.registrationNumber}
-    {data?.legacyApplicationNo && ` (${data.legacyApplicationNo})`}
-  </Text>
-</Text>
-            <Text style={styles.schemeNameText}>
-             {memberProgram?.name || '-'} Group - { data.ageGroupName || data.memberGroupName || data.ageGroup || '-'}
+          <View style={styles.sideBox}>
+            {c.showRightImage ? <Image src={rightImg} style={styles.logoImage1} /> : <View style={styles.logoGap} />}
+          </View>
+        </View>
+
+        <View style={styles.titleRow}>
+          <View style={styles.titleSide}>
+            <View style={[styles.captionBox, { paddingRight: 6 }]}>
+              <Text style={styles.imageText}>{sinceText}</Text>
+            </View>
+            <Text style={[styles.stateText, { marginRight: STATE_GAP }]}>{c.showStates ? trust.stateLeft : ''}</Text>
+          </View>
+
+          {c.title.trim() ? (
+            <View style={styles.schemeBox}>
+              <Text style={styles.schemeText}>{c.title}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.titleSide}>
+            <Text style={[styles.stateText, { marginLeft: STATE_GAP }]}>{c.showStates ? trust.stateRight : ''}</Text>
+            <View style={[styles.captionBox, { paddingLeft: 6 }]}>
+              {/* A long registration number gets smaller instead of pushing the header sideways */}
+              <Text hyphenationCallback={wholeWords} style={[styles.imageText, { fontSize: fitFontSize(regText, 9, 25.5, 0.6) }]}>{regText}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Member ID, Scheme Name and Date Row */}
+        <View style={styles.memberInfoRow}>
+          {c.showMemberNo ? (
+            <Text style={styles.memberIdText}>
+              {c.memberNoLabel}{' '}
+              <Text style={styles.memberIdValue}>
+                {data?.registrationNumber}
+                {data?.legacyApplicationNo && ` (${data.legacyApplicationNo})`}
+              </Text>
             </Text>
+          ) : <Text style={styles.memberIdText}>{' '}</Text>}
+          <Text style={styles.schemeNameText}>{schemeLine}</Text>
+          {c.showDate ? (
             <View style={styles.dateContainer}>
-              <Text style={styles.dateLabel}>दिनांक : </Text>
-              <Text style={styles.dateValue}>{formatDate(data?.dateJoin)}</Text>
+              <Text style={styles.dateLabel}>{c.dateLabel} </Text>
+              <Text style={styles.dateValue}>{values.dateJoin}</Text>
+            </View>
+          ) : <Text style={styles.dateLabel}>{' '}</Text>}
+        </View>
+
+        {/* Main Content Section */}
+        <View style={styles.contentSection}>
+          {/* Left Side - the detail rows, in two columns */}
+          <View style={styles.leftDetails}>
+            <View style={styles.detailsWrapper}>
+              <View style={styles.leftColumn}>{leftRows.map(detailRow)}</View>
+              <View style={styles.rightColumn}>{rightRows.map(detailRow)}</View>
             </View>
           </View>
 
-          {/* Main Content Section */}
-          <View style={styles.contentSection}>
-            {/* Left Side - All Details in Two Columns */}
-            <View style={styles.leftDetails}>
-              <View style={styles.detailsWrapper}>
-                {/* Left Column */}
-                <View style={styles.leftColumn}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>नाम</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValue}>
-                      {data?.displayName || 'रामलालजी'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>पिता का नाम</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.fatherName || 'लछारामजी'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>फोन न.</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValue}>
-                      {data?.phone || '8005948238'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>जाति</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.caste || 'घाँची'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>जन्मतिथि</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.dobDate || '01-01-1974'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>गोत्र</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.surname || 'घांची'}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Right Column */}
-                <View style={styles.rightColumn}>
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>वारिसदार</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.guardian || 'चंपादेवी'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>संबंध</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.guardianRelation || 'पति-पत्नी'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>पता</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {data?.currentAddress || data?.village || 'हेमावास'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>गांव & जिला</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValueNormal}>
-                      {`${data?.village || 'पाली'}${data?.district ? `, ${data.district}` : ', ( Pali )'}`}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>राज्य</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValue}>
-                      {data?.state || 'Rajasthan'}
-                    </Text>
-                  </View>
-
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>आधार कार्ड</Text>
-                    <Text style={styles.detailColon}>:</Text>
-                    <Text style={styles.detailValue}>
-                      {data?.aadhaarNo || '7459-0183-8700'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-
-            {/* Right Side - Only Photo */}
+          {/* Right Side - Only Photo */}
+          {c.showPhoto && (
             <View style={styles.photoSection}>
               <View style={styles.memberPhotoContainer}>
                 {data?.photoURL ? (
@@ -708,60 +681,63 @@ const applyPdfColors = (trust) => {
                 )}
               </View>
             </View>
+          )}
+        </View>
+
+        {/* Scheme Information */}
+        <View style={styles.schemeInfo}>
+          <View style={styles.rowContainer}>
+            {contribution ? <Text style={styles.contributionText}>{contribution}</Text> : null}
+            {joinFeeLine ? <Text style={styles.joinFeesText}>{joinFeeLine}</Text> : null}
           </View>
 
-          {/* Scheme Information */}
- <View style={styles.schemeInfo}>
-  <View style={styles.rowContainer}>
-    <Text style={styles.contributionText}>
-      सहयोग राशि : ₹ {data?.payAmount} रूपये प्रत्येक कार्यक्रम पर लागु।
-    </Text>
-    {data?.joinFees && (
-      <Text style={styles.joinFeesText}>
-        जॉइन फीस : ₹ {data?.fixedJoinFees-data?.joinFees} Pending
-      </Text>
-    )}
-  </View>
-  
-  {memberProgram?.certificateRule?.trim() && (
-    <View style={styles.rulesRow}>
-      <Text style={styles.rulesLabel}>योजना नियम :</Text>
-      <Text style={styles.rulesText}>
-        {memberProgram?.certificateRule}
-      </Text>
-    </View>
-  )}
-</View>
+          {rule ? (
+            <View style={styles.rulesRow}>
+              <Text style={styles.rulesLabel}>{c.rulesLabel}</Text>
+              <Text style={styles.rulesText}>{rule}</Text>
+            </View>
+          ) : null}
 
-          {/* Improved Footer Section */}
-          <View style={styles.footer}>
-            <View style={styles.footerTop}>
-              <View style={styles.founderSection}>
-                <Text style={styles.founderLabel}>कार्यकर्ता</Text>
-                <Text style={styles.founderName}>{data?.agentName || ''}</Text>
-                {/* <Text style={styles.founderName}>{data?.agentPhone || ''}</Text> */}
+          {note ? <Text style={styles.noteText}>{note}</Text> : null}
+        </View>
 
-              </View>
+        {/* Footer Section */}
+        <View style={styles.footer}>
+          <View style={styles.footerTop}>
+            <View style={styles.founderSection}>
+              {c.showLeft && (
+                <>
+                  <Text style={styles.founderLabel}>{c.leftLabel}</Text>
+                  {loadable(c.leftSignSrc) && <Image src={c.leftSignSrc} style={styles.signImage} />}
+                  <Text style={styles.founderName}>{fill(c.leftText)}</Text>
+                </>
+              )}
+            </View>
 
-              <View style={styles.centerFooter}>
-                <Text style={styles.footerNote}>{trust.slogan}</Text>
-                <Text style={styles.footerNote}>{trust.jurisdiction}</Text>
-              </View>
+            <View style={styles.centerFooter}>
+              {centerLines.map((line, i) => (<Text key={i} style={styles.footerNote}>{line}</Text>))}
+            </View>
 
-              <View style={styles.rightFooter}>
-                <Text style={styles.founderLabelRight}>संस्थापक</Text>
-                   <Text style={[styles.trustNameFooter, { fontSize: fitFontSize(trust.name, 12, 50) }]}>
-                    {trust.name}
+            <View style={styles.rightFooter}>
+              {c.showRight && (
+                <>
+                  <Text style={styles.founderLabelRight}>{c.rightLabel}</Text>
+                  {loadable(c.rightSignSrc) && <Image src={c.rightSignSrc} style={styles.signImage} />}
+                  <Text style={[styles.trustNameFooter, { fontSize: fitFontSize(rightLine1, 12, 50) }]}>
+                    {rightLine1}
                   </Text>
-                     <Text style={styles.trustNameFooter}>
-                    {trust.city}
+                  <Text style={styles.trustNameFooter}>
+                    {rightLine2}
                   </Text>
-           
-              </View>
+                </>
+              )}
             </View>
           </View>
         </View>
-      </Page>)}
+      </View>
+    </Page>
+  );
+};
 
 const CertificateCom = ({ data, memberProgram, trust }) => {
   const membersArray = Array.isArray(data) ? data : [data];

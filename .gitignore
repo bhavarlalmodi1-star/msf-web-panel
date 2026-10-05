@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# data migration (reports list member ids; hash file is a secret)
+/migration-reports/
+/scripts/old-auth-hash.txt

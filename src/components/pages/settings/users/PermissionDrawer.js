@@ -71,6 +71,7 @@ const MODULE_CONFIG = {
   '/settings': { label: 'Settings',   icon: <SettingOutlined />,    module: 'settings',
     children: [
       { key: '/settings/trust-details',            label: 'Trust Details' },
+      { key: '/settings/certificate-builder',      label: 'Certificate Builder' },
       { key: '/settings/about',                    label: 'About' },
       { key: '/settings/contact',                  label: 'Contact' },
       { key: '/settings/commission',               label: 'Commission' },

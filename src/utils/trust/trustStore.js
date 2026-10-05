@@ -20,6 +20,7 @@ import {
   DEFAULT_PDF_PRIMARY, DEFAULT_PDF_ACCENT, DEFAULT_THEME_PRIMARY, DEFAULT_THEME_SECONDARY,
   cleanHex, buildPanelTheme,
 } from './theme';
+import { normalizeCertificate } from './certificateConfig';
 
 export const TRUST_DOC_PATH = ['settings', 'trustInfo'];
 export const TRUST_STORAGE_FOLDER = 'settings/trust';
@@ -69,6 +70,10 @@ export const DEFAULT_TRUST = {
   pdfColorAccent: DEFAULT_PDF_ACCENT,       // PDF blessing line, badges, labels
   themePrimary: DEFAULT_THEME_PRIMARY,      // web panel main colour
   themeSecondary: DEFAULT_THEME_SECONDARY,  // web panel second (gradient) colour
+
+  // ── Membership certificate layout (Settings → Certificate Builder) ───────
+  // JSON text; empty = the built-in certificate. See certificateConfig.js.
+  certificateConfig: '',
 
   // ── Images (empty = use the built-in image shipped with the panel) ────────
   logoUrl: '',
@@ -144,6 +149,11 @@ export const normalizeTrust = (raw, options = {}) => {
   t.logoSrc = imageSrc(t.logoPath, DEFAULT_LOGO_SRC, origin);
   t.rightImageSrc = imageSrc(t.rightImagePath, DEFAULT_RIGHT_IMAGE_SRC, origin);
   t.frameSrc = imageSrc(t.framePath, '', origin);   // '' → certificate uses its built-in frame
+
+  // Certificate layout, ready to print (signature pictures get a same-origin address)
+  t.certificate = normalizeCertificate(t.certificateConfig);
+  t.certificate.leftSignSrc = imageSrc(t.certificate.leftSignPath, '', origin);
+  t.certificate.rightSignSrc = imageSrc(t.certificate.rightSignPath, '', origin);
 
   return t;
 };

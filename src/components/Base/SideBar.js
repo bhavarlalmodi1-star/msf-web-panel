@@ -149,6 +149,7 @@ const buildMenuItems = (user, pendingCount, collapsed, whatsappOn = false) => {
       module: 'settings',
       children: [
         { key: '/settings/trust-details', label: 'Trust Details', module: 'settings' },
+        { key: '/settings/certificate-builder', label: 'Certificate Builder', module: 'settings' },
         { key: '/settings/about', label: 'About', module: 'settings' },
         { key: '/settings/contact', label: 'Contact', module: 'settings' },
     {
