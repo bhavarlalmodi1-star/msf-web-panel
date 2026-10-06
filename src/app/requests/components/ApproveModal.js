@@ -9,7 +9,8 @@ import { db } from '../../../../lib/firbase-client'
 import { auth } from '../../../../lib/firbase-client'
 import dayjs from 'dayjs'
 import isBetween from 'dayjs/plugin/isBetween'
-import { createClosingPayment, createSearchIndex, generateRegistrationNumber, getNextMemberSrNo, memberAccoiuntCreate, recordJoinFeeTransaction, sendJoinCertificate } from '@/app/members/components/components/firebaseUtils'
+import { createClosingPayment, generateRegistrationNumber, getNextMemberSrNo, memberAccoiuntCreate, recordJoinFeeTransaction, sendJoinCertificate } from '@/app/members/components/components/firebaseUtils'
+import { memberSearchFields } from '@/utils/memberSearch'
 import { notifyAgent } from '@/app/utils/notifyAgent'
 import { useTrust } from '@/utils/trust/useTrust'
 
@@ -165,19 +166,10 @@ const ApproveModal = ({ open, setOpen, selectedMember, setSelectedMember, fetchA
       // Atomically assign a global Sr. No.
       const srNo = await getNextMemberSrNo()
 
-      const searchIndex = createSearchIndex({
-        name:               selectedMember.displayName,
-        fatherName:         selectedMember.fatherName,
-        surname:            selectedMember.surname,
-        phone:              selectedMember.phone,
-        aadhaarNo:          selectedMember.aadhaarNo,
+      // Search list (src/utils/memberSearch.js — shared with Add / Edit Member)
+      const searchFields = memberSearchFields({
+        ...selectedMember,
         registrationNumber: finalRegNumber,
-        village:            selectedMember.village,
-        city:               selectedMember.city,
-        district:           selectedMember.district,
-        state:              selectedMember.state,
-        caste:              selectedMember.caste,
-        guardian:           selectedMember.guardian,
         programName:        programDetail.programName,
         ageGroupName:       programDetail.ageGroupName,
       })
@@ -207,7 +199,7 @@ const ApproveModal = ({ open, setOpen, selectedMember, setSelectedMember, fetchA
         isPendingApproval: false,
         registrationNumber: finalRegNumber,
         search_registrationNumber: finalRegNumber,
-        search_keywords: searchIndex,
+        ...searchFields,
 
         srNo,
         approvedBy:     user?.uid,

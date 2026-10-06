@@ -13,6 +13,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "../../../../lib/firbase-client";
+import { normalizeSearchTerm } from "@/utils/memberSearch";
 
 /* =====================================================
    BUILD MEMBERS QUERY (SEARCH + FILTER + PAGINATION)
@@ -99,8 +100,8 @@ export const buildMembersConstraints = (filters = {}) => {
 
   // ── Search ────────────────────────────────────────────────────────────────
   if (search && search.trim()) {
-    const normalized = search.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    conditions.push(where("search_keywords", "array-contains", normalized));
+    const normalized = normalizeSearchTerm(search);
+    if (normalized) conditions.push(where("search_keywords", "array-contains", normalized));
   }
 
   // ── Sort ──────────────────────────────────────────────────────────────────
@@ -242,8 +243,8 @@ export const getTotalMembersCount = async (filters = {}) => {
   if (toDate)   conditions.push(where("joinDateTs", "<=", Timestamp.fromDate(new Date(toDate))));
 
   if (search && search.trim()) {
-    const normalized = search.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
-    conditions.push(where("search_keywords", "array-contains", normalized));
+    const normalized = normalizeSearchTerm(search);
+    if (normalized) conditions.push(where("search_keywords", "array-contains", normalized));
   }
 
   try {
@@ -321,7 +322,10 @@ export const fetchAllMembersForSearch = async (searchTerm, agentId = null) => {
     if (agentId && agentId !== "all")
       conditions.push(where("agentId", "==", agentId));
 
-    const normalized = searchTerm.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    // Cleaned the same way the stored words are (src/utils/memberSearch.js):
+    // spaces and dashes go, Hindi letters stay.
+    const normalized = normalizeSearchTerm(searchTerm);
+    if (!normalized) return [];
     conditions.push(where("search_keywords", "array-contains", normalized));
 
     const q             = query(membersRef, ...conditions, orderBy("createdAt", "desc"), limit(100));

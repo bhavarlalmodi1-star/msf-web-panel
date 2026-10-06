@@ -12,6 +12,7 @@ import {
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { db, storage } from '../../../../lib/firbase-client'
 import { notifyAgent } from '@/app/utils/notifyAgent'
+import { memberSearchFields } from '@/utils/memberSearch'
 
 // Import form section components
 import BasicInfoForm    from './components/BasicInfoForm'
@@ -479,6 +480,12 @@ const EditMember = ({ open, setOpen, programs, agents, currentUser, memberId, on
 
       // Password
       if (values.password?.trim()) updateData.password = values.password
+
+      // Search list — rebuilt from the member AS IT WILL BE SAVED. Search finds a
+      // member only by what is in `search_keywords`; without this an edited
+      // member could still only be found by the old name / phone / village.
+      Object.assign(updateData, memberSearchFields({ ...memberData, ...updateData }))
+      if (memberData?.registrationNumber) updateData.search_registrationNumber = memberData.registrationNumber
 
       // ── Save ─────────────────────────────────────────────────────────────────
       await updateDoc(doc(db, 'members', memberId), updateData)

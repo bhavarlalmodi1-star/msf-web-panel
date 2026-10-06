@@ -8,6 +8,7 @@ import dayjs from 'dayjs'
 import { auth, db, storage } from '../../../../../lib/firbase-client'
 import { message } from 'antd'
 import { notifyAgent } from '@/app/utils/notifyAgent'
+import { memberSearchFields } from '@/utils/memberSearch'
 
 // Auto-generate a cash reference ID so cash payments are searchable in history
 const generateCashId = () => {
@@ -646,12 +647,13 @@ export const handleSubmit = async (values, context, message) => {
     const selectedCasteName    = castes.find(c => c.id === values.caste)?.name || ''
     const selectedRelationName = relations.find(r => r.id === values.guardianRelation)?.name || ''
 
-    // Create search index
-    const searchIndex = createSearchIndex({
-      name: values.name,
+    // Search list (src/utils/memberSearch.js — the same builder Edit Member uses)
+    const searchFields = memberSearchFields({
+      displayName: values.name,
       fatherName: values.fatherName,
       surname: values.surname,
       phone: values.phone,
+      phoneAlt: values.phoneAlt,
       aadhaarNo: values.aadhaarNo,
       registrationNumber,
       village: values.village,
@@ -742,7 +744,8 @@ export const handleSubmit = async (values, context, message) => {
       password: values.password,
 
       // ✅ Search & filter fields
-      search_keywords: searchIndex,
+      ...searchFields,
+      search_registrationNumber: registrationNumber,
       search_programName: selectedProgramDetail.programName?.toLowerCase() || '',
       search_ageGroupName: selectedProgramDetail.ageGroupName?.toLowerCase() || '',
       search_paymentStatus: paymentStatus,

@@ -30,7 +30,8 @@ import {
   fetchAllFilteredMembers
 } from './components/firebase-helpers'
 import { auth, db } from '../../../lib/firbase-client'
-import { doc, updateDoc, query, orderBy, collection, getDoc, getCountFromServer } from 'firebase/firestore'
+import { doc, updateDoc, query, orderBy, where, collection, getDoc, getCountFromServer } from 'firebase/firestore'
+import { MEMBER_SEARCH_VERSION } from '@/utils/memberSearch'
 import { BlobProvider, PDFDownloadLink } from '@react-pdf/renderer'
 import CertificateCom from './components/MemberPdf/CertificateCom'
 import MemberListPdf, { getOldRegNo, getClosedDate } from './components/MemberPdf/MemberListPdf'
@@ -425,6 +426,62 @@ const isSuperAdmin = (user) => user?.role === 'superadmin';
       } catch (e) {
         // Never let this break the page — the filter simply behaves as before
         console.warn('[JoinDate auto-repair] check skipped:', e?.message)
+      }
+    })()
+  }, [user])
+
+  // ── Search list auto-repair ───────────────────────────────────────────────
+  // Search finds a member only by the words stored in its `search_keywords`
+  // list. Members edited before the list was rebuilt on every save (and members
+  // brought over from the old system) have an out-of-date list, so they do not
+  // come up in search. Every member with a current list is stamped
+  // `search_v`; if some are not, the server rebuilds them in chunks.
+  const searchRepairCheckedRef = useRef(false)
+  useEffect(() => {
+    if (!user || searchRepairCheckedRef.current) return
+    if (!(isSuperAdmin(user) || user.role === 'admin')) return
+    searchRepairCheckedRef.current = true
+
+    const KEY = 'member-search-repair'
+    ;(async () => {
+      try {
+        const membersRef = collection(db, 'members')
+        const [totalSnap, readySnap] = await Promise.all([
+          getCountFromServer(membersRef),
+          getCountFromServer(query(membersRef, where('search_v', '==', MEMBER_SEARCH_VERSION))),
+        ])
+        const total = totalSnap.data().count
+        const stale = total - readySnap.data().count
+        if (stale <= 0) return
+
+        console.log(`[Search auto-repair] ${stale} member(s) need their search list rebuilt`)
+        message.open({ key: KEY, type: 'loading', duration: 0, content: `Updating member search… 0 / ${total}` })
+
+        const token = await auth.currentUser?.getIdToken()
+        let cursor = null, scanned = 0, updated = 0
+        for (let guard = 0; guard < 2000; guard++) {   // hard stop so a server bug can't spin forever
+          const res = await fetch('/api/members/rebuild-search', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ cursor, batchSize: 200 }),
+          })
+          const data = await res.json()
+          if (!data.success) {
+            console.warn('[Search auto-repair] stopped:', data.message)
+            message.destroy(KEY)
+            return
+          }
+          scanned += data.scanned || 0
+          updated += data.updated || 0
+          message.open({ key: KEY, type: 'loading', duration: 0, content: `Updating member search… ${Math.min(scanned, total)} / ${total}` })
+          if (!data.hasMore) break
+          cursor = data.nextCursor
+        }
+        message.open({ key: KEY, type: 'success', duration: 3, content: `Member search updated (${updated} members)` })
+      } catch (e) {
+        // Never let this break the page — search simply behaves as before
+        console.warn('[Search auto-repair] skipped:', e?.message)
+        message.destroy(KEY)
       }
     })()
   }, [user])

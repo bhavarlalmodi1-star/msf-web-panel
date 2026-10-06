@@ -18,6 +18,7 @@ import PhotoUploads     from './components/PhotoUploads'
 import DocumentUploads  from './components/DocumentUploads'
 import { checkAadhaarDuplicate, handleSubmit, generateRegistrationNumber, isRegistrationNumberAvailable } from './components/firebaseUtils'
 import { useTrust } from '@/utils/trust/useTrust'
+import { normalizeSearchTerm } from '@/utils/memberSearch'
 
 dayjs.extend(isBetween)
 
@@ -80,7 +81,8 @@ const AddMember = ({ open, setOpen, programs, agents, currentUser, onSuccess }) 
     if (t.length < 2) { setCopyResults([]); return }
     setCopySearching(true)
     try {
-      const normalized = t.toLowerCase().replace(/[^a-z0-9]/g, '')
+      const normalized = normalizeSearchTerm(t)
+      if (!normalized) { setCopyResults([]); return }
       const snap = await getDocs(query(
         collection(db, 'members'),
         where('search_keywords', 'array-contains', normalized),

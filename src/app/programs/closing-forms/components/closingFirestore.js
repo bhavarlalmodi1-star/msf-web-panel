@@ -3,6 +3,7 @@ import {
 } from 'firebase/firestore'
 import { db } from '../../../../../lib/firbase-client'
 import dayjs from 'dayjs'
+import { normalizeSearchTerm } from '@/utils/memberSearch'
 
 // member_closed_date is stored as an ISO-8601 UTC string (e.g. ...T18:30:00.000Z).
 // The table displays dates in IST (UTC+05:30), so a stored day D rolls over to
@@ -16,7 +17,8 @@ const isoBound = (day, subtractOne = false) => {
   return `${base.format('YYYY-MM-DD')}T18:30:00.000Z`
 }
 
-const normalizeSearch = (s) => (s || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+// Same clean-up as the Members page, so both lists find the same members
+const normalizeSearch = normalizeSearchTerm
 
 /* Build the where-clauses for a CLOSED-members query (server-side filters).
    filters: {
